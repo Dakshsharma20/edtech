@@ -1,0 +1,16 @@
+import { NextResponse, type NextRequest } from "next/server";
+import { safeNext } from "@/lib/auth/session";
+import { createClient } from "@/lib/supabase/server";
+
+/** Completes email-confirmation and password-recovery links (PKCE code exchange). */
+export async function GET(request: NextRequest) {
+  const { searchParams, origin } = new URL(request.url);
+  const code = searchParams.get("code");
+  const next = safeNext(searchParams.get("next")) ?? "/";
+  const supabase = await createClient();
+  if (supabase && code) {
+    const { error } = await supabase.auth.exchangeCodeForSession(code);
+    if (!error) return NextResponse.redirect(`${origin}${next}`);
+  }
+  return NextResponse.redirect(`${origin}/login?error=link`);
+}
